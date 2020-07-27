@@ -1,0 +1,5 @@
+[client]
+database = users
+user = Y
+password = 2891
+default-character-set = utf8
