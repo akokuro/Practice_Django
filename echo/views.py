@@ -29,6 +29,17 @@ def get_token(name, password):
         return None
 
 
+def create_user(name, password):
+    """Создание пользователя с логином name и паролем password"""
+    user = User.objects.create_user(username=name)
+    user.set_password(password)
+    user.save()
+
+def is_valid_user_data(name, password):
+    """Проверка данных пользователя на соответствие шаблону"""
+    return  6 <= len(name) <= 12 and 6 <= len(password) <= 12 and name.isalnum() and password.isalnum()
+
+
 def signup(request):
     """Представление регистрации
     Регистрирует пользователя, если пароль и логин состоят из английских букв и цифр и их длина находится в диапазоне [6;12]
@@ -38,32 +49,25 @@ def signup(request):
     которые возвращаются в ответ на запрос"""
     if request.method == 'POST':
         form = RegisterUserForm(request.POST)
-        if form.is_valid():
-            if  6 <= len(form.data['password']) <= 12 and \
-                6 <= len(form.data['username']) <= 12 and \
-                form.data['username'].isalnum() and form.data['password'].isalnum():
-
-                user = form.save(commit=False)
-                user.set_password(form.data['password'])
-                user.save()
+        if  is_valid_user_data(form.data['username'], form.data['password']):
+            if form.is_valid():
+                create_user(form.data['username'], form.data['password'])
                 token = get_token(form.data['username'], form.data['password'])
                 if token == None:
                     return HttpResponse('Unauthorized', status=401)
                 else:
                     return redirect_with_jwt('/hello/', token)
             else:
-                raise ValidationError(
-                    _('Password or login is incorrect.'),
-                )
+                return HttpResponse('This login is already used', status=403)
         else:
-            return HttpResponse('This login is already used', status=403)
+            raise ValidationError(
+                _('Password or login is incorrect.'),
+            )
     if 'thinkforme' in request.GET and request.GET['thinkforme'] == 'true':
         name = User.objects.make_random_password()
-        passwrod = User.objects.make_random_password()
-        user = User.objects.create_user(username=name)
-        user.set_password(passwrod)
-        user.save()
-        return HttpResponse('Your username is ' + name + ' your password is ' + passwrod, status=200)
+        password = User.objects.make_random_password()
+        create_user(name, password)
+        return HttpResponse('Your username is ' + name + ' your password is ' + password, status=200)
     return render(request,
                   'registration/register.html',
                   {
@@ -92,7 +96,7 @@ def login(request):
 
 def hello(request):
     """Возвращает тело запроса, если пользователь авторизован
-    Возвращает ошибку 401, если пользователь не авторизован"""
+    Возвращает ошибку 401, если пользователь не авторизован+"""
     if 'jwt' in request.COOKIES:
         if request.method == 'POST':
             data = request.COOKIES['jwt']
