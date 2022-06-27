@@ -6,6 +6,6 @@ djangorestframework==3.11.0
 djangorestframework-simplejwt==4.4.0
 PyJWT==1.7.1
 pylint==2.5.3
-reportlab==3.4.0
+reportlab==3.5.55
 requests==2.18.4
 PyMySQL==0.10.0
